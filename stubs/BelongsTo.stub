@@ -4,7 +4,7 @@ namespace Illuminate\Database\Eloquent\Relations;
 
 /**
  * @template TRelatedModel of \Illuminate\Database\Eloquent\Model
- * @template TChildModel of \Illuminate\Database\Eloquent\Model
+ * @template-covariant TChildModel of \Illuminate\Database\Eloquent\Model
  * @extends Relation<TRelatedModel>
  */
 class BelongsTo extends Relation

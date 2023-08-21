@@ -3,7 +3,7 @@
 namespace Illuminate\Database\Eloquent;
 
 /**
- * @template TModelClass of Model
+ * @template-covariant TModelClass of Model
  * @property-read static $orWhere
  */
 class Builder

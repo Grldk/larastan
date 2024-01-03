@@ -12,6 +12,10 @@ Carbon::macro('foo', static function (): string {
     return $arg;
 });
 
+\Illuminate\Database\Query\Builder::macro('globalCustomDatabaseQueryMacro', function (string $arg = 'foobar', int $b = 5): string {
+    return $arg;
+});
+
 \Illuminate\Support\Facades\Route::macro('facadeMacro', function (): int {
     return 5;
 });
@@ -41,3 +45,14 @@ class CustomCollectionMacro
 }
 
 (new CustomCollectionMacro)->registerMacro();
+
+if (version_compare(PHP_VERSION, '8.1.0', '>=')) {
+    enum FooEnum: string
+    {
+        case FOO = 'foo';
+    }
+
+    \Illuminate\Database\Eloquent\Builder::macro('macroWithEnumDefaultValue', function (string $arg = 'foobar', $b = FooEnum::FOO): string {
+        return $arg;
+    });
+}

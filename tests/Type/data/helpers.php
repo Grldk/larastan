@@ -4,6 +4,7 @@ namespace Helpers;
 
 use App\User;
 use Exception;
+use Illuminate\Support\Str;
 use Larastan\Larastan\ApplicationResolver;
 use Throwable;
 
@@ -134,6 +135,10 @@ function strHelper()
 {
     assertType('Illuminate\Support\Stringable', str('foo'));
     assertType('mixed', str());
+
+    assertType('string', Str::replace('foo', 'bar', 'Laravel'));
+    assertType('array{string, string}', Str::replace('foo', 'bar', ['Laravel', 'Framework']));
+    assertType('array<int|string, string>', Str::replace('foo', 'bar', collect(['Laravel', 'Framework'])));
 }
 
 function tapHelper()
@@ -188,4 +193,28 @@ function transformHelper()
     assertType('null', transform(null, fn () => 1));
     assertType('null', transform('', fn () => 1));
     assertType('null', transform([], fn () => 1));
+}
+
+function filledHelperNullInference()
+{
+    /** @var ?int $value */
+    $value = 0;
+
+    if (filled($value)) {
+        assertType('int', $value);
+    } else {
+        assertType('int|null', $value);
+    }
+}
+
+function blankHelperNullInference()
+{
+    /** @var ?int $value */
+    $value = 0;
+
+    if (blank($value)) {
+        assertType('int|null', $value);
+    } else {
+        assertType('int', $value);
+    }
 }

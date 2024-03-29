@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Larastan\Larastan\ReturnTypes;
 
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -37,15 +39,35 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
         }
 
         $methods = [
-            'chunk', 'chunkWhile', 'collapse', 'combine',
-            'crossJoin', 'flatMap', 'flip',
-            'groupBy', 'keyBy', 'keys',
-            'make', 'map', 'mapInto',
-            'mapToDictionary', 'mapToGroups',
-            'mapWithKeys', 'mergeRecursive',
-            'pad', 'partition', 'pluck',
-            'pop', 'random', 'shift', 'sliding', 'split',
-            'splitIn', 'values', 'wrap', 'zip',
+            'chunk',
+            'chunkWhile',
+            'collapse',
+            'combine',
+            'crossJoin',
+            'flatMap',
+            'flip',
+            'groupBy',
+            'keyBy',
+            'keys',
+            'make',
+            'map',
+            'mapInto',
+            'mapToDictionary',
+            'mapToGroups',
+            'mapWithKeys',
+            'mergeRecursive',
+            'pad',
+            'partition',
+            'pluck',
+            'pop',
+            'random',
+            'shift',
+            'sliding',
+            'split',
+            'splitIn',
+            'values',
+            'wrap',
+            'zip',
         ];
 
         if (version_compare(LARAVEL_VERSION, '9.48.0', '<')) {
@@ -58,12 +80,12 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
     public function getTypeFromMethodCall(
         MethodReflection $methodReflection,
         MethodCall $methodCall,
-        Scope $scope
+        Scope $scope,
     ): Type {
         $returnType = ParametersAcceptorSelector::selectFromArgs(
             $scope,
             $methodCall->getArgs(),
-            $methodReflection->getVariants()
+            $methodReflection->getVariants(),
         )->getReturnType();
 
         if ((! $returnType instanceof UnionType) && $returnType->isObject()->no()) {
@@ -86,6 +108,7 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
         // If it's a UnionType, traverse the types and try to find a collection object type
         if ($returnType instanceof UnionType) {
             return $returnType->traverse(function (Type $type) use ($classReflection) {
+                // @phpcs:ignore
                 if ($type instanceof GenericObjectType && ($innerReflection = $type->getClassReflection()) !== null) { // @phpstan-ignore-line
                     return $this->handleGenericObjectType($classReflection, $innerReflection);
                 }
@@ -124,6 +147,7 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
                     return $traverse($type);
                 }
 
+                // @phpcs:ignore
                 if ($type instanceof GenericObjectType && (($innerTypeReflection = $type->getClassReflection()) !== null)) {
                     $genericTypes = $innerTypeReflection->typeMapToList($innerTypeReflection->getActiveTemplateTypeMap());
 

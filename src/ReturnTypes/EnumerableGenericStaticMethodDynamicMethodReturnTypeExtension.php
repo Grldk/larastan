@@ -7,6 +7,7 @@ namespace Larastan\Larastan\ReturnTypes;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use PhpParser\Node\Expr\MethodCall;
 use PHPStan\Analyser\Scope;
 use PHPStan\Reflection\ClassReflection;
@@ -22,20 +23,20 @@ use PHPStan\Type\TypeTraverser;
 use PHPStan\Type\UnionType;
 
 use function array_map;
+use function array_merge;
 use function in_array;
-use function version_compare;
 
-class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements DynamicMethodReturnTypeExtension
+class EnumerableGenericStaticMethodDynamicMethodReturnTypeExtension implements DynamicMethodReturnTypeExtension
 {
     public function getClass(): string
     {
-        return Collection::class;
+        return Enumerable::class;
     }
 
     public function isMethodSupported(MethodReflection $methodReflection): bool
     {
         if ($methodReflection->getDeclaringClass()->getName() === EloquentCollection::class) {
-            return $methodReflection->getName() === 'find';
+            return in_array($methodReflection->getName(), ['find', 'map', 'mapWithKeys'], true);
         }
 
         $methods = [
@@ -43,13 +44,13 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
             'chunkWhile',
             'collapse',
             'combine',
+            'concat',
             'crossJoin',
             'flatMap',
             'flip',
             'groupBy',
             'keyBy',
             'keys',
-            'make',
             'map',
             'mapInto',
             'mapToDictionary',
@@ -59,9 +60,7 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
             'pad',
             'partition',
             'pluck',
-            'pop',
             'random',
-            'shift',
             'sliding',
             'split',
             'splitIn',
@@ -70,8 +69,8 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
             'zip',
         ];
 
-        if (version_compare(LARAVEL_VERSION, '9.48.0', '<')) {
-            $methods[] = 'countBy';
+        if ($methodReflection->getDeclaringClass()->getName() === Collection::class) {
+            $methods = array_merge($methods, ['pop', 'shift']);
         }
 
         return in_array($methodReflection->getName(), $methods, true);
@@ -92,6 +91,17 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
             return $returnType;
         }
 
+        // map and mapWithKeys returns base collection,
+        // if items does not include Eloquent model.
+        // This logic is in stub files, so here we check if the return type is base collection
+        if (
+            $methodReflection->getDeclaringClass()->getName() === EloquentCollection::class &&
+            in_array($methodReflection->getName(), ['map', 'mapWithKeys'], true) &&
+            $returnType->getObjectClassNames()[0] === Collection::class
+        ) {
+            return $returnType;
+        }
+
         $calledOnType = $scope->getType($methodCall->var);
 
         if ($calledOnType->getObjectClassReflections() === []) {
@@ -101,7 +111,7 @@ class CollectionGenericStaticMethodDynamicMethodReturnTypeExtension implements D
         $classReflection = $calledOnType->getObjectClassReflections()[0];
 
         // Special cases for methods returning single models
-        if (($classReflection->getName() === EloquentCollection::class || $classReflection->getName() === Collection::class) && (new ObjectType(Model::class))->isSuperTypeOf($returnType)->yes()) {
+        if ((new ObjectType(Model::class))->isSuperTypeOf($returnType)->yes()) {
             return $returnType;
         }
 

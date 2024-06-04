@@ -26,20 +26,20 @@ jobs:
         include:
           -
             repository: monicahq/monica
-            ref: 12a6f08c8ce65eb022f91195a0b1317aed78955d
+            ref: f769c18d4617c3ef8997a69026708a17a626acff
             php-version: "8.2"
             config: monicahq-monica.neon
             baseline: monicahq-monica.baseline.neon
           -
             repository: koel/koel
-            ref: e2838f3c9e1cf7826227aac450d38bd7fc8843f9
+            ref: 44345753fa3b32fbb49586f127e6c621773b7d75
             php-version: "8.1"
             config: koel-koel.neon
             baseline: koel-koel.baseline.neon
 
           -
             repository: canvural/larastan-test
-            ref: 7ec9bcb4f8cf3b07c5a298504df6a8568fb65221
+            ref: f6dddbd4916f199adc35419c6a1bd2c63ba6f734
             php-version: "8.1"
             config: canvural-larastan-test.neon
             baseline: canvural-larastan-test.baseline.neon
@@ -53,10 +53,11 @@ jobs:
 
           -
             repository: filamentphp/filament
-            ref: fa626b4b82e2439fcfc3d4941e1310a64b2c009f
+            ref: 6799de116ceac33778566a8aee533c0c3f97cd74
             php-version: "8.2"
             config: filamentphp-filament.neon
             baseline: filamentphp-filament.baseline.neon
+            force-phpstan-version: true
 
     steps:
       - name: "Checkout"
@@ -83,7 +84,11 @@ jobs:
           composer install --no-scripts --no-interaction
           composer config repositories.0 '{ "type": "path", "url": "../larastan" }'
           composer config minimum-stability dev
-          composer require --dev --update-with-all-dependencies "larastan/larastan:*"
+          if [ "${{ matrix.force-phpstan-version }}" = "true" ]; then
+            composer require --dev --update-with-all-dependencies "larastan/larastan:*" "phpstan/phpstan:*"
+          else
+            composer require --dev --update-with-all-dependencies "larastan/larastan:*"
+          fi
 
       - name: "Perform static analysis"
         working-directory: e2e

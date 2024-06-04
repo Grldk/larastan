@@ -4,6 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property string $name
+ */
 class Team extends Model
 {
     /**
@@ -12,4 +15,21 @@ class Team extends Model
      * @var string
      */
     protected $keyType = 'string';
+
+    /**
+     * @return ChildTeamBuilder
+     */
+    public static function query(): ChildTeamBuilder
+    {
+        return parent::query();
+    }
+
+    /**
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return ChildTeamBuilder
+     */
+    public function newEloquentBuilder($query): ChildTeamBuilder
+    {
+        return new ChildTeamBuilder($query);
+    }
 }

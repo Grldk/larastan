@@ -9,6 +9,7 @@ use App\Thread;
 use App\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Foundation\Http\FormRequest;
 
 use function PHPStan\Testing\assertType;
@@ -24,6 +25,15 @@ class Foo
 class Bar extends Model
 {
     use HasBar;
+
+    public function test(): void
+    {
+        assertType('Illuminate\Database\Eloquent\Builder<static(Model\Bar)>', self::query());
+        assertType('Illuminate\Database\Eloquent\Builder<static(Model\Bar)>', static::query());
+
+        assertType('static(Model\Bar)|null', self::query()->first());
+        assertType('static(Model\Bar)|null', static::query()->first());
+    }
 }
 
 trait HasBar
@@ -120,6 +130,9 @@ function test(
     assertType('App\User|null', User::firstWhere(['email' => 'foo@bar.com']));
     assertType('Illuminate\Database\Eloquent\Builder<App\User>', $user->with('accounts'));
     assertType('Illuminate\Database\Eloquent\Builder<App\User>', $user->with('accounts')->with('group'));
+    assertType('Illuminate\Database\Eloquent\Builder<App\User>', $user->with(['accounts' => function (Relation $relation) {
+        assertType('Illuminate\Database\Eloquent\Relations\Relation<Illuminate\Database\Eloquent\Model>', $relation->orderBy('id'));
+    }]));
     assertType('Illuminate\Database\Eloquent\Builder<App\User>', User::lockForUpdate());
     assertType('Illuminate\Database\Eloquent\Builder<App\User>', User::sharedLock());
     assertType('Illuminate\Database\Eloquent\Builder<App\User>', User::query());
@@ -129,6 +142,16 @@ function test(
     assertType('App\User|Illuminate\Database\Eloquent\Collection<int, App\User>', Thread::methodReturningUnionWithCollectionOfAnotherModel());
     assertType('mixed', $user->min('id'));
     assertType('App\User', User::sole());
+
+    /** @var class-string<User> $className */
+    $className = User::class;
+
+    assertType('App\User', new $className());
+    assertType('App\User', $className::create());
+    assertType('Illuminate\Database\Eloquent\Builder<App\User>', (new $className())->newQuery());
+    assertType('Illuminate\Database\Eloquent\Builder<App\User>', $className::query());
+    assertType('Illuminate\Database\Eloquent\Builder<App\User>', $className::query()->active());
+    assertType('Illuminate\Database\Eloquent\Collection<int, App\User>', $className::query()->active()->get());
 
     User::has('accounts', '=', 1, 'and', function (Builder $query) {
         assertType('Illuminate\Database\Eloquent\Builder', $query);

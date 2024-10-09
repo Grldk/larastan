@@ -11,7 +11,6 @@ use Iterator;
 use IteratorAggregate;
 use PHPStan\Reflection\ClassReflection;
 use PHPStan\Reflection\MissingMethodFromReflectionException;
-use PHPStan\Reflection\ParametersAcceptorSelector;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\ShouldNotHappenException;
 use PHPStan\Type\BenevolentUnionType;
@@ -66,7 +65,7 @@ final class CollectionHelper
     {
         try {
             $newCollectionMethod = $this->reflectionProvider->getClass($modelClassName)->getNativeMethod('newCollection');
-            $returnType          = ParametersAcceptorSelector::selectSingle($newCollectionMethod->getVariants())->getReturnType();
+            $returnType          = $newCollectionMethod->getVariants()[0]->getReturnType();
 
             $classNames = $returnType->getObjectClassNames();
 
@@ -109,7 +108,7 @@ final class CollectionHelper
 
         $innerValueType = $classReflection->getActiveTemplateTypeMap()->getType('TModel');
 
-        if ($classReflection->getName() === EloquentCollection::class || $classReflection->isSubclassOf(EloquentCollection::class)) {
+        if ($classReflection->is(EloquentCollection::class)) {
             $keyType = new IntegerType();
         }
 

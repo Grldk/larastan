@@ -55,15 +55,15 @@ class RelationDynamicMethodReturnTypeExtension implements DynamicMethodReturnTyp
         MethodReflection $methodReflection,
         MethodCall $methodCall,
         Scope $scope,
-    ): Type {
+    ): Type|null {
         /** @var FunctionVariant $functionVariant */
-        $functionVariant = ParametersAcceptorSelector::selectSingle($methodReflection->getVariants());
+        $functionVariant = ParametersAcceptorSelector::selectFromArgs($scope, $methodCall->getArgs(), $methodReflection->getVariants());
         $returnType      = $functionVariant->getReturnType();
 
         $classNames = $returnType->getObjectClassNames();
 
         if (count($classNames) !== 1) {
-            return $returnType;
+            return null;
         }
 
         $calledOnType = $scope->getType($methodCall->var);
@@ -78,14 +78,14 @@ class RelationDynamicMethodReturnTypeExtension implements DynamicMethodReturnTyp
                 return new GenericObjectType($classNames[0], [new ObjectType(Model::class), $calledOnType]);
             }
 
-            return $returnType;
+            return null;
         }
 
         $argType    = $scope->getType($methodCall->getArgs()[0]->value);
         $argStrings = $argType->getConstantStrings();
 
         if (count($argStrings) !== 1) {
-            return $returnType;
+            return null;
         }
 
         $argClassName = $argStrings[0]->getValue();

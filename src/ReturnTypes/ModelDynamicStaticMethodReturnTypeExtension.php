@@ -22,6 +22,8 @@ use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Type\DynamicStaticMethodReturnTypeExtension;
 use PHPStan\Type\Generic\GenericObjectType;
 use PHPStan\Type\ObjectType;
+use PHPStan\Type\StaticType;
+use PHPStan\Type\ThisType;
 use PHPStan\Type\Type;
 use PHPStan\Type\TypeCombinator;
 
@@ -61,35 +63,41 @@ final class ModelDynamicStaticMethodReturnTypeExtension implements DynamicStatic
             return true;
         }
 
-        if (! $this->reflectionProvider->getClass(Model::class)->hasNativeMethod($name)) {
-            return false;
-        }
-
-        $method = $this->reflectionProvider->getClass(Model::class)->getNativeMethod($methodReflection->getName());
-
-        $returnType = ParametersAcceptorSelector::selectSingle($method->getVariants())->getReturnType();
-
-        return count(array_intersect([EloquentBuilder::class, QueryBuilder::class, Collection::class], $returnType->getReferencedClasses())) > 0;
+        return $this->reflectionProvider->getClass(Model::class)->hasNativeMethod($name);
     }
 
     public function getTypeFromStaticMethodCall(
         MethodReflection $methodReflection,
         StaticCall $methodCall,
         Scope $scope,
-    ): Type {
+    ): Type|null {
         $method = $methodReflection->getDeclaringClass()
             ->getMethod($methodReflection->getName(), $scope);
 
-        $returnType = ParametersAcceptorSelector::selectSingle($method->getVariants())->getReturnType();
+        $returnType = ParametersAcceptorSelector::selectFromArgs($scope, $methodCall->getArgs(), $method->getVariants())->getReturnType();
+
+        if (count(array_intersect([EloquentBuilder::class, QueryBuilder::class, Collection::class], $returnType->getReferencedClasses())) === 0) {
+            return null;
+        }
 
         if (count(array_intersect([EloquentBuilder::class], $returnType->getReferencedClasses())) > 0) {
             if ($methodCall->class instanceof Name) {
+                $type = $scope->resolveTypeByName($methodCall->class);
+
+                if ($type instanceof ThisType) {
+                    $type = new StaticType($type->getClassReflection());
+                }
+
                 $returnType = new GenericObjectType(
-                    $this->builderHelper->determineBuilderName($scope->resolveName($methodCall->class)),
-                    [new ObjectType($scope->resolveName($methodCall->class))],
+                    $this->builderHelper->determineBuilderName($type->getClassName()),
+                    [$type],
                 );
             } elseif ($methodCall->class instanceof Expr) {
                 $type = $scope->getType($methodCall->class);
+
+                if ($type->isClassStringType()->yes()) {
+                    $type = $type->getClassStringObjectType();
+                }
 
                 $classNames = $type->getObjectClassNames();
 
